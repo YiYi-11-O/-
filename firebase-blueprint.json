@@ -1,0 +1,48 @@
+{
+  "entities": {
+    "LeaderboardScore": {
+      "title": "LeaderboardScore",
+      "description": "心算大師各難度之全球即時排行榜記錄",
+      "type": "object",
+      "properties": {
+        "difficulty": {
+          "type": "integer",
+          "description": "題目難度等級 (1 ~ 5)"
+        },
+        "playerName": {
+          "type": "string",
+          "maxLength": 30,
+          "description": "玩家暱稱或稱號"
+        },
+        "score": {
+          "type": "integer",
+          "description": "本局最終得分"
+        },
+        "solvedCount": {
+          "type": "integer",
+          "description": "成功答對題數"
+        },
+        "bestStreak": {
+          "type": "integer",
+          "description": "最高連擊數"
+        },
+        "userId": {
+          "type": "string",
+          "maxLength": 128,
+          "description": "玩家使用者識別碼"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "紀錄建立時間戳記"
+        }
+      },
+      "required": ["difficulty", "playerName", "score", "solvedCount", "bestStreak", "userId", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/leaderboard_scores/{scoreId}": {
+      "schema": "LeaderboardScore",
+      "description": "全球玩家在各難度下的即時心算成績排行集合"
+    }
+  }
+}

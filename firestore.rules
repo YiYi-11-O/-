@@ -1,0 +1,54 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Default Deny Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidLeaderboardScore(data) {
+      return data.keys().hasAll(['difficulty', 'playerName', 'score', 'solvedCount', 'bestStreak', 'userId', 'createdAt'])
+        && data.keys().hasOnly(['difficulty', 'playerName', 'score', 'solvedCount', 'bestStreak', 'userId', 'createdAt'])
+        && data.userId == request.auth.uid
+        && data.difficulty is int && data.difficulty >= 1 && data.difficulty <= 5
+        && data.playerName is string && data.playerName.size() >= 1 && data.playerName.size() <= 30
+        && data.score is int && data.score >= 0 && data.score <= 500000
+        && data.solvedCount is int && data.solvedCount >= 0
+        && data.bestStreak is int && data.bestStreak >= 0
+        && data.createdAt == request.time;
+    }
+
+    // 各難度即時全球排行榜集合 (所有裝置同步即時讀取)
+    match /leaderboard_scores/{scoreId} {
+      // 允許所有裝置公開讀取排行榜 (實時同步)
+      allow read: if true;
+
+      // 登入之玩家可提交合規成績記錄
+      allow create: if isSignedIn()
+        && isValidId(scoreId)
+        && isValidLeaderboardScore(incoming());
+
+      // 分數記錄不可竄改，但允許管理員於後台執行刪除與重置維護
+      allow update: if false;
+      allow delete: if isSignedIn() && isValidId(scoreId);
+    }
+  }
+}

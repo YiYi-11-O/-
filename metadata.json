@@ -1,0 +1,6 @@
+{
+  "name": "心算大師 (Mental Math Master) - 題目生成與驗證系統",
+  "description": "Unity/C# 心算大師手機遊戲的題目生成與四則運算驗證架構，支援先乘除後加減、嚴格整除驗證與單元測試",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
