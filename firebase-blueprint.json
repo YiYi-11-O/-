@@ -37,12 +37,126 @@
         }
       },
       "required": ["difficulty", "playerName", "score", "solvedCount", "bestStreak", "userId", "createdAt"]
+    },
+    "BattleRoom": {
+      "title": "BattleRoom",
+      "description": "心算大師多人線上 1v1 即時對戰房間資料",
+      "type": "object",
+      "properties": {
+        "roomCode": {
+          "type": "string",
+          "maxLength": 8,
+          "description": "對戰房間邀請碼"
+        },
+        "difficulty": {
+          "type": "integer",
+          "description": "對戰題目難度等級 (1 ~ 5)"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["waiting", "countdown", "playing", "round_result", "finished"],
+          "description": "房間當前遊戲對戰狀態"
+        },
+        "currentRound": {
+          "type": "integer",
+          "description": "當前回合數"
+        },
+        "totalRounds": {
+          "type": "integer",
+          "description": "總對戰回合數"
+        },
+        "roundTimeLimit": {
+          "type": "integer",
+          "description": "每回合思考倒數秒數"
+        },
+        "roundStartTime": {
+          "type": "number",
+          "description": "當前回合開始毫秒時間戳"
+        },
+        "host": {
+          "type": "object",
+          "description": "房主玩家狀態（含分數、連擊、本回合解題狀況）"
+        },
+        "guest": {
+          "type": "object",
+          "description": "對手玩家狀態（含分數、連擊、本回合解題狀況）"
+        },
+        "currentQuestion": {
+          "type": "object",
+          "description": "本回合對戰之同步題目（包含 4 個數字、目標值與參考解答）"
+        },
+        "winner": {
+          "type": "string",
+          "description": "獲勝玩家識別碼或 draw"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "房間建立時間"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "房間最近更新時間"
+        }
+      },
+      "required": ["roomCode", "difficulty", "status", "currentRound", "totalRounds", "roundTimeLimit", "host", "currentQuestion", "createdAt"]
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "心算大師玩家公開戰績檔案、好友代碼與個人資料",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "description": "玩家唯一識別碼"
+        },
+        "displayName": {
+          "type": "string",
+          "maxLength": 30,
+          "description": "自訂玩家暱稱"
+        },
+        "avatar": {
+          "type": "string",
+          "maxLength": 50,
+          "description": "玩家自選頭像標識或 emoji"
+        },
+        "friendCode": {
+          "type": "string",
+          "maxLength": 10,
+          "description": "專屬好友代碼 (例如 849201)"
+        },
+        "singlePlayerStats": {
+          "type": "object",
+          "description": "單人闖關各難度最佳累積戰績"
+        },
+        "multiplayerStats": {
+          "type": "object",
+          "description": "多人線上對戰總場次、勝場、勝率與總分"
+        },
+        "friendUids": {
+          "type": "array",
+          "description": "好友玩家識別碼列表"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "檔案最後更新時間"
+        }
+      },
+      "required": ["uid", "displayName", "friendCode", "multiplayerStats"]
     }
   },
   "firestore": {
     "/leaderboard_scores/{scoreId}": {
       "schema": "LeaderboardScore",
       "description": "全球玩家在各難度下的即時心算成績排行集合"
+    },
+    "/battle_rooms/{roomId}": {
+      "schema": "BattleRoom",
+      "description": "多人即時 1v1 線上對戰房間集合"
+    },
+    "/user_profiles/{userId}": {
+      "schema": "UserProfile",
+      "description": "全體玩家之公開戰績檔案與好友查詢集合"
     }
   }
 }

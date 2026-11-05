@@ -50,5 +50,36 @@ service cloud.firestore {
       allow update: if false;
       allow delete: if isSignedIn() && isValidId(scoreId);
     }
+
+    // 多人線上即時 1v1 對戰房間
+    match /battle_rooms/{roomId} {
+      // 允許跨裝置即時串流監聽房間狀態與大廳房間列表
+      allow read: if true;
+
+      // 玩家建立對戰房間
+      allow create: if isValidId(roomId)
+        && incoming().roomCode is string
+        && incoming().difficulty is int
+        && incoming().difficulty >= 1
+        && incoming().difficulty <= 5;
+
+      // 對戰中玩家提交作答、加入房間或結算回合狀態
+      allow update: if isValidId(roomId);
+
+      // 允許房間關閉與清理
+      allow delete: if isValidId(roomId);
+    }
+
+    // 玩家公開戰績檔案、好友代碼與個人資料
+    match /user_profiles/{userId} {
+      // 允許公開讀取戰績、好友資訊與公開資料
+      allow read: if true;
+
+      // 玩家更新或建立自己的戰績檔案
+      allow create, update: if isValidId(userId);
+
+      // 允許後台管理維護刪除或玩家清理個人檔案
+      allow delete: if isValidId(userId);
+    }
   }
 }

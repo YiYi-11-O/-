@@ -82,12 +82,25 @@ const BASE_DIFFICULTY_METADATA: Omit<DifficultyConfig, 'timeLimit'>[] = [
   },
 ];
 
-const STORAGE_KEY = 'mental_math_time_limits_v1';
-const listeners: Array<(limits: Record<number, number>) => void> = [];
+const TIME_LIMITS_STORAGE_KEY = 'mental_math_time_limits_v1';
+const TUTORIAL_STORAGE_KEY = 'mental_math_tutorial_speed_v1';
+
+const timeLimitListeners: Array<(limits: Record<number, number>) => void> = [];
+const tutorialListeners: Array<(settings: TutorialAnimationSettings) => void> = [];
+
+export interface TutorialAnimationSettings {
+  speedMultiplier: number; // 例如 0.5x, 1.0x, 1.5x, 2.0x, 3.0x
+  stepDurations: number[]; // [3500, 4200, 3600, 2200] 預設基準毫秒
+}
+
+export const DEFAULT_TUTORIAL_SETTINGS: TutorialAnimationSettings = {
+  speedMultiplier: 1.0,
+  stepDurations: [3500, 4200, 3600, 2200],
+};
 
 export function getTimeLimits(): Record<number, number> {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(TIME_LIMITS_STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
       return {
@@ -113,8 +126,8 @@ export function saveTimeLimits(limits: Record<number, number>): void {
       4: Math.max(5, Math.min(600, Math.round(limits[4] || DEFAULT_TIME_LIMITS[4]))),
       5: Math.max(5, Math.min(600, Math.round(limits[5] || DEFAULT_TIME_LIMITS[5]))),
     };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(sanitized));
-    listeners.forEach((l) => l(sanitized));
+    localStorage.setItem(TIME_LIMITS_STORAGE_KEY, JSON.stringify(sanitized));
+    timeLimitListeners.forEach((l) => l(sanitized));
   } catch (err) {
     console.error('Failed to save time limits:', err);
   }
@@ -134,9 +147,110 @@ export function getDifficultyConfigs(): DifficultyConfig[] {
 }
 
 export function subscribeTimeLimits(listener: (limits: Record<number, number>) => void): () => void {
-  listeners.push(listener);
+  timeLimitListeners.push(listener);
   return () => {
-    const idx = listeners.indexOf(listener);
-    if (idx !== -1) listeners.splice(idx, 1);
+    const idx = timeLimitListeners.indexOf(listener);
+    if (idx !== -1) timeLimitListeners.splice(idx, 1);
   };
+}
+
+// ========================
+// 開場動畫時間快慢設定 (Tutorial Animation Speed)
+// ========================
+
+export function getTutorialSettings(): TutorialAnimationSettings {
+  try {
+    const raw = localStorage.getItem(TUTORIAL_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return {
+        speedMultiplier: Math.max(0.2, Math.min(5.0, Number(parsed.speedMultiplier) || 1.0)),
+        stepDurations: Array.isArray(parsed.stepDurations) && parsed.stepDurations.length === 4
+          ? parsed.stepDurations.map((d: number, i: number) => Number(d) || DEFAULT_TUTORIAL_SETTINGS.stepDurations[i])
+          : [...DEFAULT_TUTORIAL_SETTINGS.stepDurations],
+      };
+    }
+  } catch (err) {
+    console.warn('Failed to read tutorial settings:', err);
+  }
+  return { ...DEFAULT_TUTORIAL_SETTINGS };
+}
+
+export function saveTutorialSettings(settings: TutorialAnimationSettings): void {
+  try {
+    const sanitized: TutorialAnimationSettings = {
+      speedMultiplier: Math.max(0.2, Math.min(5.0, Number(settings.speedMultiplier) || 1.0)),
+      stepDurations: settings.stepDurations.map((d) => Math.max(800, Math.min(15000, Math.round(d)))),
+    };
+    localStorage.setItem(TUTORIAL_STORAGE_KEY, JSON.stringify(sanitized));
+    tutorialListeners.forEach((l) => l(sanitized));
+  } catch (err) {
+    console.error('Failed to save tutorial settings:', err);
+  }
+}
+
+export function resetTutorialSettings(): TutorialAnimationSettings {
+  saveTutorialSettings(DEFAULT_TUTORIAL_SETTINGS);
+  return { ...DEFAULT_TUTORIAL_SETTINGS };
+}
+
+export function getCalculatedTutorialDurations(): number[] {
+  const { speedMultiplier, stepDurations } = getTutorialSettings();
+  return stepDurations.map((dur) => Math.max(600, Math.round(dur / speedMultiplier)));
+}
+
+export function subscribeTutorialSettings(listener: (settings: TutorialAnimationSettings) => void): () => void {
+  tutorialListeners.push(listener);
+  return () => {
+    const idx = tutorialListeners.indexOf(listener);
+    if (idx !== -1) tutorialListeners.splice(idx, 1);
+  };
+}
+
+// ========================
+// 後台管理密碼設定 (Backend Password Management)
+// ========================
+
+const BACKEND_PASSWORD_STORAGE_KEY = 'mental_math_backend_pwd_v1';
+export const DEFAULT_BACKEND_PASSWORD = '8888';
+
+export function getBackendPassword(): string {
+  try {
+    const pwd = localStorage.getItem(BACKEND_PASSWORD_STORAGE_KEY);
+    if (pwd && pwd.trim().length >= 4) {
+      return pwd.trim();
+    }
+  } catch (err) {
+    console.warn('Failed to read backend password:', err);
+  }
+  return DEFAULT_BACKEND_PASSWORD;
+}
+
+export function setBackendPassword(newPassword: string): boolean {
+  if (!newPassword || newPassword.trim().length < 4) {
+    return false;
+  }
+  try {
+    localStorage.setItem(BACKEND_PASSWORD_STORAGE_KEY, newPassword.trim());
+    return true;
+  } catch (err) {
+    console.error('Failed to save backend password:', err);
+    return false;
+  }
+}
+
+export function resetBackendPassword(): void {
+  try {
+    localStorage.removeItem(BACKEND_PASSWORD_STORAGE_KEY);
+  } catch (err) {
+    console.error('Failed to reset backend password:', err);
+  }
+}
+
+export function isDefaultBackendPassword(): boolean {
+  return getBackendPassword() === DEFAULT_BACKEND_PASSWORD;
+}
+
+export function verifyBackendPassword(input: string): boolean {
+  return input.trim() === getBackendPassword();
 }

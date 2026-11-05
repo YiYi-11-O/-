@@ -6,44 +6,46 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FastForward, CheckCircle2, XCircle, Sparkles, Play, Pause, RotateCcw, Clock, ArrowRight } from 'lucide-react';
 import { sound } from '../utils/audio';
+import { getCalculatedTutorialDurations, getTutorialSettings } from '../services/gameSettingsService';
 
 interface RuleTutorialProps {
   onComplete: () => void;
   onSkip: () => void;
 }
 
-const STEP_DURATIONS = [3500, 4200, 3600, 2200]; // 各步驟自動播放毫秒數
-const TOTAL_DURATION = STEP_DURATIONS.reduce((a, b) => a + b, 0);
-
 export const RuleTutorial: React.FC<RuleTutorialProps> = ({ onComplete, onSkip }) => {
+  const [stepDurations] = useState<number[]>(() => getCalculatedTutorialDurations());
+  const totalDuration = stepDurations.reduce((a, b) => a + b, 0);
+
   const [currentStepIdx, setCurrentStepIdx] = useState<number>(0);
   const [animPhase, setAnimPhase] = useState<number>(0);
   const [isPaused, setIsPaused] = useState<boolean>(false);
   const [stepProgressPct, setStepProgressPct] = useState<number>(0);
-  const [secondsRemaining, setSecondsRemaining] = useState<number>(Math.ceil(STEP_DURATIONS[0] / 1000));
+  const [secondsRemaining, setSecondsRemaining] = useState<number>(Math.ceil(stepDurations[0] / 1000));
 
   const timerRef = useRef<number | null>(null);
   const progressIntervalRef = useRef<number | null>(null);
 
   // 計算全體整體播放進度 (Overall Progress %)
-  const previousStepsDuration = STEP_DURATIONS.slice(0, currentStepIdx).reduce((a, b) => a + b, 0);
-  const currentStepElapsed = (stepProgressPct / 100) * STEP_DURATIONS[currentStepIdx];
-  const overallProgressPct = Math.min(100, ((previousStepsDuration + currentStepElapsed) / TOTAL_DURATION) * 100);
+  const previousStepsDuration = stepDurations.slice(0, currentStepIdx).reduce((a, b) => a + b, 0);
+  const currentStepElapsed = (stepProgressPct / 100) * stepDurations[currentStepIdx];
+  const overallProgressPct = Math.min(100, ((previousStepsDuration + currentStepElapsed) / totalDuration) * 100);
 
-  // 每個步驟的內部微動畫定時器
+  // 每個步驟的內部微動畫定時器 (依動畫播放速度等比微調)
   useEffect(() => {
     setAnimPhase(0);
+    const duration = stepDurations[currentStepIdx] || 3000;
 
-    const t1 = window.setTimeout(() => setAnimPhase(1), 500);
-    const t2 = window.setTimeout(() => setAnimPhase(2), 1500);
-    const t3 = window.setTimeout(() => setAnimPhase(3), 2600);
+    const t1 = window.setTimeout(() => setAnimPhase(1), Math.round(duration * 0.15));
+    const t2 = window.setTimeout(() => setAnimPhase(2), Math.round(duration * 0.45));
+    const t3 = window.setTimeout(() => setAnimPhase(3), Math.round(duration * 0.75));
 
     return () => {
       window.clearTimeout(t1);
       window.clearTimeout(t2);
       window.clearTimeout(t3);
     };
-  }, [currentStepIdx]);
+  }, [currentStepIdx, stepDurations]);
 
   // 自動推進時間軸 (Auto-playing slide timeline)
   useEffect(() => {
@@ -53,7 +55,7 @@ export const RuleTutorial: React.FC<RuleTutorialProps> = ({ onComplete, onSkip }
       return;
     }
 
-    const duration = STEP_DURATIONS[currentStepIdx];
+    const duration = stepDurations[currentStepIdx] || 3000;
     const startTime = performance.now();
     setSecondsRemaining(Math.ceil(duration / 1000));
 

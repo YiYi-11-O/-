@@ -4,19 +4,23 @@
  */
 
 import React from 'react';
-import { Play, Sparkles, Settings, Trophy } from 'lucide-react';
+import { Play, Sparkles, Settings, Trophy, Swords, User } from 'lucide-react';
 import { sound } from '../utils/audio';
 
 interface TitleScreenProps {
   onStartGame: () => void;
   onOpenBackendLogin: () => void;
   onOpenLeaderboard?: () => void;
+  onOpenMultiplayer?: () => void;
+  onOpenProfile?: () => void;
 }
 
 export const TitleScreen: React.FC<TitleScreenProps> = ({
   onStartGame,
   onOpenBackendLogin,
   onOpenLeaderboard,
+  onOpenMultiplayer,
+  onOpenProfile,
 }) => {
   const handleStart = () => {
     sound.playTap();
@@ -52,11 +56,24 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
         <div className="pt-6 w-full max-w-xs mx-auto space-y-3">
           <button
             onClick={handleStart}
-            className="w-full py-4.5 bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black text-xl rounded-2xl transition-all duration-200 hover:scale-105 active:scale-95 shadow-xl shadow-amber-500/25 flex items-center justify-center gap-3 cursor-pointer"
+            className="w-full py-4 bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black text-lg rounded-2xl transition-all duration-200 hover:scale-105 active:scale-95 shadow-xl shadow-amber-500/25 flex items-center justify-center gap-2.5 cursor-pointer"
           >
-            <Play className="w-6 h-6 fill-current" />
-            <span>開始遊戲</span>
+            <Play className="w-5 h-5 fill-current" />
+            <span>開始單人遊戲</span>
           </button>
+
+          {onOpenMultiplayer && (
+            <button
+              onClick={() => {
+                sound.playTap();
+                onOpenMultiplayer();
+              }}
+              className="w-full py-3.5 bg-gradient-to-r from-rose-600 via-rose-500 to-amber-500 hover:from-rose-500 hover:to-amber-400 text-white font-black text-sm rounded-2xl transition-all duration-200 hover:scale-105 active:scale-95 shadow-xl shadow-rose-600/25 flex items-center justify-center gap-2 cursor-pointer border border-rose-400/30"
+            >
+              <Swords className="w-4 h-4 stroke-[2.5]" />
+              <span>多人線上對戰 (1v1 即時)</span>
+            </button>
+          )}
 
           {onOpenLeaderboard && (
             <button
@@ -68,6 +85,19 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
             >
               <Trophy className="w-4 h-4 text-amber-400" />
               <span>全服即時排行榜 (跨裝置同步)</span>
+            </button>
+          )}
+
+          {onOpenProfile && (
+            <button
+              onClick={() => {
+                sound.playTap();
+                onOpenProfile();
+              }}
+              className="w-full py-2.5 bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 hover:border-slate-700 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md"
+            >
+              <User className="w-4 h-4 text-cyan-400" />
+              <span>玩家資訊 · 取名字與好友名單</span>
             </button>
           )}
         </div>

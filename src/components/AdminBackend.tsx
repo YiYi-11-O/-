@@ -4,13 +4,15 @@
  */
 
 import React, { useState } from 'react';
-import { ArrowLeft, ShieldCheck, Activity, FileCode, BookOpen, LogOut, Clock, Trophy } from 'lucide-react';
+import { ArrowLeft, ShieldCheck, Activity, FileCode, BookOpen, LogOut, Clock, Trophy, Lock, Users } from 'lucide-react';
 import { UnitTestTab } from './UnitTestTab';
 import { BenchmarkTab } from './BenchmarkTab';
 import { CSharpCodeTab } from './CSharpCodeTab';
 import { DocTab } from './DocTab';
 import { AdminTimerSettingsTab } from './AdminTimerSettingsTab';
 import { AdminLeaderboardTab } from './AdminLeaderboardTab';
+import { AdminPlayersTab } from './AdminPlayersTab';
+import { AdminSecurityTab } from './AdminSecurityTab';
 import { sound } from '../utils/audio';
 
 interface AdminBackendProps {
@@ -18,7 +20,7 @@ interface AdminBackendProps {
   onLogout: () => void;
 }
 
-type BackendTab = 'timer' | 'leaderboard' | 'tests' | 'benchmark' | 'csharp' | 'docs';
+type BackendTab = 'timer' | 'leaderboard' | 'players' | 'security' | 'tests' | 'benchmark' | 'csharp' | 'docs';
 
 export const AdminBackend: React.FC<AdminBackendProps> = ({ onReturnToGame, onLogout }) => {
   const [activeTab, setActiveTab] = useState<BackendTab>('timer');
@@ -97,6 +99,30 @@ export const AdminBackend: React.FC<AdminBackendProps> = ({ onReturnToGame, onLo
         </button>
 
         <button
+          onClick={() => setActiveTab('players')}
+          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-t-lg text-xs font-bold transition-colors whitespace-nowrap shrink-0 border-b-2 cursor-pointer ${
+            activeTab === 'players'
+              ? 'border-cyan-400 text-cyan-300 bg-slate-900/80'
+              : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-900/40'
+          }`}
+        >
+          <Users className="w-3.5 h-3.5" />
+          <span>玩家資訊管理與刪除</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('security')}
+          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-t-lg text-xs font-bold transition-colors whitespace-nowrap shrink-0 border-b-2 cursor-pointer ${
+            activeTab === 'security'
+              ? 'border-amber-400 text-amber-300 bg-slate-900/80'
+              : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-900/40'
+          }`}
+        >
+          <Lock className="w-3.5 h-3.5" />
+          <span>修改後台密碼</span>
+        </button>
+
+        <button
           onClick={() => setActiveTab('tests')}
           className={`flex items-center gap-1.5 px-3.5 py-2 rounded-t-lg text-xs font-medium transition-colors whitespace-nowrap shrink-0 border-b-2 cursor-pointer ${
             activeTab === 'tests'
@@ -149,6 +175,8 @@ export const AdminBackend: React.FC<AdminBackendProps> = ({ onReturnToGame, onLo
       <div>
         {activeTab === 'timer' && <AdminTimerSettingsTab />}
         {activeTab === 'leaderboard' && <AdminLeaderboardTab />}
+        {activeTab === 'players' && <AdminPlayersTab />}
+        {activeTab === 'security' && <AdminSecurityTab />}
         {activeTab === 'tests' && <UnitTestTab />}
         {activeTab === 'benchmark' && <BenchmarkTab />}
         {activeTab === 'csharp' && <CSharpCodeTab />}

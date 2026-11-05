@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { Volume2, VolumeX, BookOpen, Settings, Lock, Trophy } from 'lucide-react';
+import { Volume2, VolumeX, BookOpen, Settings, Lock, Trophy, Swords } from 'lucide-react';
 import { TitleScreen } from './components/TitleScreen';
 import { RuleTutorial } from './components/RuleTutorial';
 import { DifficultyScreen } from './components/DifficultyScreen';
@@ -13,9 +13,21 @@ import { RuleModal } from './components/RuleModal';
 import { BackendLoginModal } from './components/BackendLoginModal';
 import { AdminBackend } from './components/AdminBackend';
 import { LeaderboardModal } from './components/LeaderboardModal';
+import { MultiplayerLobby } from './components/MultiplayerLobby';
+import { MultiplayerBattle } from './components/MultiplayerBattle';
+import { PlayerProfileModal } from './components/PlayerProfileModal';
+import { getLocalProfile, PlayerProfile, UserProfile } from './services/playerProfileService';
+import { createBattleRoom } from './services/multiplayerService';
 import { sound } from './utils/audio';
 
-type GameView = 'title' | 'tutorial' | 'difficulty' | 'play' | 'backend';
+type GameView =
+  | 'title'
+  | 'tutorial'
+  | 'difficulty'
+  | 'play'
+  | 'multiplayer_lobby'
+  | 'multiplayer_battle'
+  | 'backend';
 
 export default function App() {
   const [currentView, setCurrentView] = useState<GameView>('title');
@@ -25,6 +37,14 @@ export default function App() {
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState<boolean>(false);
   const [leaderboardDifficulty, setLeaderboardDifficulty] = useState<number>(3);
   const [isMuted, setIsMuted] = useState<boolean>(false);
+
+  // 玩家個人資訊與好友
+  const [profile, setProfile] = useState<PlayerProfile>(() => getLocalProfile());
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState<boolean>(false);
+
+  // 多人對戰狀態
+  const [activeBattleRoomId, setActiveBattleRoomId] = useState<string | null>(null);
+  const [isBattleHost, setIsBattleHost] = useState<boolean>(false);
 
   // 切換靜音
   const handleToggleMute = () => {
@@ -40,6 +60,25 @@ export default function App() {
       setLeaderboardDifficulty(selectedDifficulty);
     }
     setIsLeaderboardOpen(true);
+  };
+
+  // 進入多人對戰大廳
+  const handleOpenMultiplayerLobby = () => {
+    sound.playTap();
+    setCurrentView('multiplayer_lobby');
+  };
+
+  // 進入對戰房間
+  const handleEnterBattleRoom = (roomId: string, isHost: boolean) => {
+    setActiveBattleRoomId(roomId);
+    setIsBattleHost(isHost);
+    setCurrentView('multiplayer_battle');
+  };
+
+  // 退出對戰房間
+  const handleExitBattleRoom = () => {
+    setActiveBattleRoomId(null);
+    setCurrentView('multiplayer_lobby');
   };
 
   // 從標題點擊開始遊戲 -> 進入開場動畫講解
@@ -64,6 +103,18 @@ export default function App() {
     setCurrentView('backend');
   };
 
+  // 好友對決挑戰
+  const handleChallengeFriend = async (friend: UserProfile) => {
+    try {
+      sound.playTap();
+      const roomId = await createBattleRoom(3, 3, profile.displayName);
+      setIsProfileModalOpen(false);
+      handleEnterBattleRoom(roomId, true);
+    } catch (err: any) {
+      console.error('Failed to create room for friend challenge:', err);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#090d16] text-slate-100 flex flex-col selection:bg-amber-500/30 selection:text-amber-200">
       {/* 頂部導覽列 */}
@@ -84,8 +135,32 @@ export default function App() {
             )}
           </div>
 
-          {/* 右側：排行榜、規則說明與音效切換 */}
+          {/* 右側：個人資訊、線上對戰、排行榜、規則說明與音效切換 */}
           <div className="flex items-center gap-2">
+            {/* 玩家個人資訊 / 取名字 / 戰績 / 好友 */}
+            <button
+              onClick={() => {
+                sound.playTap();
+                setIsProfileModalOpen(true);
+              }}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-amber-200 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-lg transition-colors cursor-pointer"
+              title="查看玩家資訊、取名與管理好友"
+            >
+              <span>{profile.avatar}</span>
+              <span className="font-bold max-w-[80px] truncate hidden sm:inline">{profile.displayName}</span>
+            </button>
+
+            {currentView !== 'multiplayer_battle' && (
+              <button
+                onClick={handleOpenMultiplayerLobby}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 rounded-lg transition-colors cursor-pointer"
+                title="多人線上對戰"
+              >
+                <Swords className="w-3.5 h-3.5 text-rose-400" />
+                <span className="hidden sm:inline">線上對戰</span>
+              </button>
+            )}
+
             <button
               onClick={() => {
                 sound.playTap();
@@ -131,6 +206,8 @@ export default function App() {
             onStartGame={handleStartFromTitle}
             onOpenBackendLogin={() => setIsBackendLoginOpen(true)}
             onOpenLeaderboard={() => handleOpenLeaderboard()}
+            onOpenMultiplayer={handleOpenMultiplayerLobby}
+            onOpenProfile={() => setIsProfileModalOpen(true)}
           />
         )}
 
@@ -163,7 +240,24 @@ export default function App() {
           />
         )}
 
-        {/* 5. 密碼保護之工程管理後台 */}
+        {/* 5. 多人線上 1v1 對戰大廳 */}
+        {currentView === 'multiplayer_lobby' && (
+          <MultiplayerLobby
+            onEnterRoom={handleEnterBattleRoom}
+            onBackToTitle={() => setCurrentView('title')}
+          />
+        )}
+
+        {/* 6. 多人線上即時對戰競技場 */}
+        {currentView === 'multiplayer_battle' && activeBattleRoomId && (
+          <MultiplayerBattle
+            roomId={activeBattleRoomId}
+            isHost={isBattleHost}
+            onExit={handleExitBattleRoom}
+          />
+        )}
+
+        {/* 7. 密碼保護之工程管理後台 */}
         {currentView === 'backend' && (
           <AdminBackend
             onReturnToGame={() => setCurrentView('play')}
@@ -190,6 +284,14 @@ export default function App() {
         isOpen={isBackendLoginOpen}
         onClose={() => setIsBackendLoginOpen(false)}
         onSuccess={handleBackendLoginSuccess}
+      />
+
+      {/* 玩家個人資訊、改名取名、戰績與好友名單彈窗 */}
+      <PlayerProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+        onProfileUpdated={(updated) => setProfile(updated)}
+        onChallengeFriend={handleChallengeFriend}
       />
 
       {/* 頁尾 */}
